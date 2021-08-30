@@ -1,0 +1,24 @@
+
+importFrom("utils", "read.table", "write.table")
+importFrom("fields", "tim.colors")
+importFrom("graphics", ".filled.contour", "abline", "axTicks", "axis",
+           "box", "boxplot", "contour", "image", "layout", "mtext",
+           "par", "text")
+
+export(readCoords)
+export(readCoordsMap)
+export(getAWSTimeRange)
+
+export(chartMinAWSData)
+export(chartAggrAWSData)
+export(chartAggrAWSDataSel)
+
+export(mapMinAWSData)
+export(mapAggrAWSData)
+
+export(tableAggrAWSData)
+export(tableAggrAWSDataSel)
+
+export(downAWSMinDataCSV)
+export(downTableAggrCSV)
+export(downAWSAggrOneVarCSV)
