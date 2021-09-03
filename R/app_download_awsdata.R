@@ -300,3 +300,27 @@ downWindFreqCSV <- function(net_aws, height, tstep, start, end, aws_dir)
     return(convCSV(don))
 }
 
+##########
+#' Compute hourly mean sea level pressure.
+#'
+#' Compute hourly mean sea level pressure
+#' 
+#' @param time target date.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downHourlyMSLP <- function(time, aws_dir){
+    don <- compute_mslp(time, aws_dir)
+
+    if(don$status == "ok"){
+        don <- don$data
+        don[is.na(don)] <- ""
+    }else don <- data.frame(status = don$status)
+
+    return(convCSV(don))
+}
+

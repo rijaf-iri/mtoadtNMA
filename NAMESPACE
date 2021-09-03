@@ -21,6 +21,7 @@ export(graphWindContours)
 
 export(mapMinAWSData)
 export(mapAggrAWSData)
+export(mapHourlyMSLP)
 
 export(tableAggrAWSData)
 export(tableAggrAWSDataSel)
@@ -32,5 +33,6 @@ export(downTableAggrDataSelCSV)
 export(downAWSAggrCDTDataCSV)
 export(downWindBarbCSV)
 export(downWindFreqCSV)
+export(downHourlyMSLP)
 
 
