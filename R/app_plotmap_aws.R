@@ -194,7 +194,7 @@ spatialMinAWSData <- function(time, aws_dir){
     crds <- crds[ix, , drop = FALSE]
     don <- cbind(don, crds)
 
-    ina <- !is.na(don$longitude) & !is.na(don$altitude)
+    ina <- !is.na(don$longitude) & !is.na(don$latitude)
     don <- don[ina, , drop = FALSE]
 
     if(nrow(don) == 0) return(data.null)
@@ -519,7 +519,7 @@ spatialAggrAWS <- function(tstep, time, aws_dir){
     crds <- crds[ix, , drop = FALSE]
     don <- cbind(don, crds)
 
-    ina <- !is.na(don$longitude) & !is.na(don$altitude)
+    ina <- !is.na(don$longitude) & !is.na(don$latitude)
     don <- don[ina, , drop = FALSE]
 
     if(nrow(don) == 0) return(data.null)

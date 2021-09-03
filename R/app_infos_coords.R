@@ -30,7 +30,11 @@ readCoords <- function(aws_dir){
 #' @export
 
 readCoordsMap <- function(aws_dir){
-    on.exit(DBI::dbDisconnect(con_adt))
+    crds <- readCoordsData(aws_dir)
+    return(convJSON(crds))
+}
+
+readCoordsData <- function(aws_dir){
     tz <- Sys.getenv("TZ")
     origin <- "1970-01-01"
 
@@ -43,13 +47,18 @@ readCoordsMap <- function(aws_dir){
 
     adcoCrd <- DBI::dbReadTable(con_adt, "adcon_crds")
     adcoCrd$network <- "Adcon"
+    adcoCrd$network_code <- 2
     vaisCrd <- DBI::dbReadTable(con_adt, "vaisala_crds")
     vaisCrd$network <- "Vaisala"
+    vaisCrd$network_code <- 1
     koikCrd <- DBI::dbReadTable(con_adt, "koica_crds")
     koikCrd$network <- "Koica"
+    koikCrd$network_code <- 3
+
+    DBI::dbDisconnect(con_adt)
 
     nmCol <- c("id", "name", "longitude", "latitude", "altitude", "network",
-                "woreda", "zone", "region", "startdate", "enddate")
+               "network_code", "woreda", "zone", "region", "startdate", "enddate")
 
     # crds <- rbind(adcoCrd[, nmCol, drop = FALSE], vaisCrd[, nmCol, drop = FALSE])
     crds <- rbind(adcoCrd[, nmCol, drop = FALSE],
@@ -112,7 +121,7 @@ readCoordsMap <- function(aws_dir){
     # get parameters for each aws
     # crds$PARS <- pars
 
-    return(convJSON(crds))
+    return(crds)
 }
 
 #############
@@ -129,8 +138,8 @@ readCoordsMap <- function(aws_dir){
 #' 
 #' @export
 
+### to be integrate to readCoords
 getAWSTimeRange <- function(id, network, aws_dir){
-    on.exit(DBI::dbDisconnect(con_adt))
     tz <- Sys.getenv("TZ")
     origin <- "1970-01-01"
 
@@ -148,11 +157,47 @@ getAWSTimeRange <- function(id, network, aws_dir){
                     )
 
     query <- paste0("SELECT startdate, enddate FROM ", net_dat, " WHERE id='", id, "'")
-    # qres <- getQuery(con_adt, query)
     qres <- DBI::dbGetQuery(con_adt, query)
+    DBI::dbDisconnect(con_adt)
     qres <- lapply(qres, as.POSIXct, origin = origin, tz = tz)
     qres <- lapply(qres, format, "%Y-%m-%d %H:%M:%S")
 
     return(convJSON(qres))
+}
+
+#############
+#' Get AWS Wind coordinates.
+#'
+#' Get AWS Wind coordinates to display on map.
+#' 
+#' @param height height above ground, 2 or 10 meters
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return a JSON object
+#' 
+#' @export
+
+readCoordsWind <- function(height, aws_dir){
+    parsFile <- file.path(aws_dir, "AWS_DATA", "JSON", "aws_parameters.json")
+    awsPars <- jsonlite::read_json(parsFile)
+
+    coordAWS <- lapply(awsPars, function(x){
+        if(all(9:10 %in% unlist(x$PARS))){
+            dd <- height %in% names(x$height[['9']][[1]])
+            ff <- height %in% names(x$height[['10']][[1]])
+            if(dd & ff){
+                aws <- x[c("network_code", "network", "id", "name")]
+                return(aws)
+            }
+        }
+
+        return(NULL)
+    })
+
+    inull <- sapply(coordAWS, is.null)
+    coordAWS <- coordAWS[!inull]
+
+    return(convJSON(coordAWS))
 }
 

@@ -301,8 +301,9 @@ getAggrAWSData_awsSel <- function(tstep, net_aws, var_hgt, pars,
     net_code <- sapply(awsPars, "[[", "network_code")
     aws_id <- sapply(awsPars, "[[", "id")
 
-    istn <- sapply(net_aws, function(a) which(net_code == a[1] & aws_id == a[2]))
-    awsPars <- awsPars[istn]
+    istn <- lapply(net_aws, function(a) which(net_code == a[1] & aws_id == a[2]))
+    nz <- sapply(istn, length) > 0
+    awsPars <- awsPars[unlist(istn[nz])]
 
     sel_net <- sapply(awsPars, '[[', 'network_code')
     sel_id <- sapply(awsPars, '[[', 'id')
@@ -448,4 +449,118 @@ getAggrAWSData_awsSel <- function(tstep, net_aws, var_hgt, pars,
     out$status <- "ok"
 
     return(out)
+}
+
+##########
+
+wind2hourly <- function(dates, ws, wd){
+    wu <- -ws * sin(pi * wd / 180)
+    wv <- -ws * cos(pi * wd / 180)
+    index <- split(seq_along(dates), substr(dates, 1, 10))
+    uvhr <- lapply(index, function(i){
+        u <- mean(wu[i], na.rm = TRUE)
+        v <- mean(wv[i], na.rm = TRUE)
+        if(is.nan(u)) u <- NA
+        if(is.nan(v)) v <- NA
+        c(u, v)
+    })
+    uvhr <- do.call(rbind, uvhr)
+    ff <- sqrt(uvhr[, 1]^2 + uvhr[, 2]^2)
+    dd <- (atan2(uvhr[, 1], uvhr[, 2]) * 180/pi) + ifelse(ff < 1e-14, 0, 180)
+    ff <- round(ff, 2)
+    dd <- round(dd, 2)
+    wsd <- list(date = names(index), ws = as.numeric(ff), wd = as.numeric(dd))
+    return(wsd)
+}
+
+getWindData <- function(net_aws, height, tstep, start, end, aws_dir)
+{
+    tz <- Sys.getenv("TZ")
+    origin <- "1970-01-01"
+
+    parsFile <- file.path(aws_dir, "AWS_DATA", "JSON", "aws_parameters.json")
+    awsPars <- jsonlite::read_json(parsFile)
+
+    net_aws <- strsplit(net_aws, "_")[[1]]
+    net_code <- sapply(awsPars, "[[", "network_code")
+    aws_id <- sapply(awsPars, "[[", "id")
+
+    istn <- which(net_code == net_aws[1] & aws_id == net_aws[2])
+    awsPars <- awsPars[[istn]][c('network_code', 'network', 'id', 'name')]
+
+    frmt <- if(tstep == "hourly") "%Y-%m-%d-%H" else "%Y-%m-%d-%H-%M"
+    start <- strptime(start, frmt, tz = tz)
+    end <- strptime(end, frmt, tz = tz)
+    start <- as.numeric(start)
+    end <- as.numeric(end)
+
+    ######
+    adt_args <- readRDS(file.path(aws_dir, "AWS_DATA", "AUTH", "adt.con"))
+    conn <- try(connect.database(adt_args$connection,
+                   RMySQL::MySQL()), silent = TRUE)
+    if(inherits(conn, "try-error"))
+        return(list(status = 'failed-connection'))
+
+    query <- paste0("SELECT obs_time, var_code, value, limit_check FROM aws_data WHERE (",
+                   "network=", net_aws[1], " AND id='", net_aws[2], "' AND height=", height, 
+                   " AND var_code IN (9, 10) AND stat_code=1) AND (",
+                   "obs_time >= ", start, " AND obs_time <= ", end, ")")
+
+    qres <- DBI::dbGetQuery(conn, query)
+    DBI::dbDisconnect(conn)
+
+    if(nrow(qres) == 0) return(list(status = 'no-data'))
+
+    qres[!is.na(qres$limit_check), 'value'] <- NA
+
+    qres <- reshape2::acast(qres, obs_time~var_code, mean, value.var = 'value')
+    daty <- as.integer(dimnames(qres)[[1]])
+    daty <- as.POSIXct(daty, origin = origin, tz = tz)
+
+    ws <- as.numeric(qres[, '10'])
+    wd <- as.numeric(qres[, '9'])
+
+    if(tstep == "hourly"){
+        wind <- wind2hourly(format(daty, '%Y%m%d%H%M'), ws, wd)
+        ws <- wind$ws
+        wd <- wind$wd
+        dts <- strptime(wind$date, "%Y%m%d%H", tz = tz)
+        tstep.seq <- 'hour'
+        tstep.out <- 1
+    }else{
+        dts <- sort(daty)
+        tstep.seq <- '15 min'
+        tstep.out <- 15
+    }
+
+    daty <- seq(min(dts), max(dts), tstep.seq)
+    nb_obs <- length(daty)
+
+    ddif <- diff(dts)
+    idf <- ddif > tstep.out
+    if(any(idf)){
+        idt <- which(idf)
+        addmul <- if(tstep == "hourly") 3600 else tstep.out * 60
+        miss.daty <- dts[idt] + addmul
+        miss.daty <- format(miss.daty, "%Y%m%d%H%M%S", tz = tz)
+
+        daty1 <- rep(NA, length(dts) + length(miss.daty))
+        ws1 <- rep(NA, length(daty1))
+        wd1 <- rep(NA, length(daty1))
+
+        daty1[idt + seq(length(miss.daty))] <- miss.daty
+        ix <- is.na(daty1)
+        daty1[ix] <- format(dts, "%Y%m%d%H%M%S", tz = tz)
+        ws1[ix] <- ws
+        wd1[ix] <- wd
+        ws <- ws1
+        wd <- wd1
+        dts <- strptime(daty1, "%Y%m%d%H%M%S", tz = tz)
+    }
+
+    avail <- round(100 * sum(!is.na(ws)) / nb_obs, 1)
+    wind <- list(date = dts, ws = ws, wd = wd)
+    out <- list(avail = avail, status = 'ok')
+
+    return(c(awsPars, wind, out))
 }

@@ -148,5 +148,155 @@ downAWSAggrOneVarCSV <- function(tstep, net_aws, var_hgt, start, end, aws_dir){
     return(convCSV(don))
 }
 
+##########
+#' Get aggregated data.
+#'
+#' Get aggregated data to download for multiple AWS.
+#' 
+#' @param tstep the time step of the data.
+#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koika
+#' @param var_hgt the variable code and observation height, form  <var code>_<height>.
+#' @param pars parameters.
+#' @param start start time.
+#' @param end end time.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV format object
+#' 
+#' @export
 
+downTableAggrDataSelCSV <- function(tstep, net_aws, var_hgt, pars,
+                                    start, end, aws_dir)
+{
+    out <- getAggrAWSData_awsSel(tstep, net_aws, var_hgt, pars, start, end, aws_dir)
+
+    don <- data.frame(Date = NA, Status = "no.data")
+    if(out$status != "ok"){
+        don$Status <- out$status
+        return(convCSV(don))
+    }
+
+    ina <- rowSums(!is.na(out$data)) > 0
+    if(!any(ina)) return(convCSV(don))
+    out$date <- out$date[ina]
+    out$data <- out$data[ina, , drop = FALSE]
+    out$data <- round(out$data, 1)
+
+    don <- data.frame(out$date, out$data)
+    names(don) <- c('Date', out$net_aws)
+
+    return(convCSV(don))
+}
+
+##########
+#' Get aggregated data in CDT format.
+#'
+#' Get aggregated data in CDT format for download.
+#' 
+#' @param tstep the time step of the data.
+#' @param var_hgt the variable code and observation height, form  <var code>_<height>.
+#' @param pars parameters.
+#' @param start start time.
+#' @param end end time.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downAWSAggrCDTDataCSV <- function(tstep, var_hgt, pars, start, end, aws_dir)
+{
+    crds <- readCoordsData(aws_dir)
+    crds[crds == ""] <- NA
+    net_aws <- paste0(crds$network_code, '_', crds$id)
+    don <- getAggrAWSData_awsSel(tstep, net_aws, var_hgt, pars, start, end, aws_dir)
+
+    if(don$status != "ok"){
+        return(convCSV(don$status, FALSE))
+    } 
+    capt <- c("NET_ID", "LON", "DATE/LAT")
+
+    ix <- match(don$net_aws, net_aws)
+    xhead <- rbind(don$net_aws, crds$longitude[ix], crds$latitude[ix])
+
+    data_cdt <- rbind(cbind(capt, xhead), cbind(don$date, don$data))
+    data_cdt[is.na(data_cdt)] <- -99
+    dimnames(data_cdt) <- NULL
+
+    return(convCSV(data_cdt, FALSE))
+}
+
+##########
+#' Get wind data.
+#'
+#' Get wind data for download.
+#' 
+#' @param tstep time step of the data.
+#' @param net_aws the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koica
+#' @param height the observation height.
+#' @param start start time.
+#' @param end end time.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downWindBarbCSV <- function(net_aws, height, tstep, start, end, aws_dir)
+{
+    tz <- Sys.getenv("TZ")
+    wnd <- getWindData(net_aws, height, tstep, start, end, aws_dir)
+    if(wnd$status != "ok"){
+        if(wnd$status == 'no-data')
+            msg <- "No available data"
+        if(wnd$status == 'failed-connection')
+            msg <- "Unable to connect to databasea"
+
+        ret <- data.frame(status = msg)
+        return(convCSV(ret))
+    }
+
+    daty <- format(wnd$date, "%Y%m%d%H%M%S")
+    ret <- data.frame(date = daty, ws = wnd$ws, wd = wnd$wd)
+    return(convCSV(ret))
+}
+
+##########
+#' Get wind frequency.
+#'
+#' Get wind frequency for download.
+#' 
+#' @param tstep time step of the data.
+#' @param net_aws the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koica
+#' @param height the observation height.
+#' @param start start time.
+#' @param end end time.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downWindFreqCSV <- function(net_aws, height, tstep, start, end, aws_dir)
+{
+    don <- formatFreqTable(net_aws, height, tstep, start, end, aws_dir)
+    if(don$status != "ok"){
+        if(don$status == 'no-data')
+            msg <- "No available data"
+        if(don$status == 'failed-connection')
+            msg <- "Unable to connect to databasea"
+
+        ret <- data.frame(status = msg)
+        return(convCSV(ret))
+    }
+    nom <- names(don$freq)
+    don <- as.data.frame(don$freq)
+    names(don) <- nom
+
+    return(convCSV(don))
+}
 

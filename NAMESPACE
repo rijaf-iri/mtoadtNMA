@@ -7,11 +7,17 @@ importFrom("graphics", ".filled.contour", "abline", "axTicks", "axis",
 
 export(readCoords)
 export(readCoordsMap)
+export(readCoordsWind)
+
 export(getAWSTimeRange)
 
 export(chartMinAWSData)
 export(chartAggrAWSData)
 export(chartAggrAWSDataSel)
+export(chartWindBarb)
+export(chartWindRose)
+export(openairWindRose)
+export(graphWindContours)
 
 export(mapMinAWSData)
 export(mapAggrAWSData)
@@ -22,3 +28,9 @@ export(tableAggrAWSDataSel)
 export(downAWSMinDataCSV)
 export(downTableAggrCSV)
 export(downAWSAggrOneVarCSV)
+export(downTableAggrDataSelCSV)
+export(downAWSAggrCDTDataCSV)
+export(downWindBarbCSV)
+export(downWindFreqCSV)
+
+

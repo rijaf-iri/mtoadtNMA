@@ -280,7 +280,7 @@ chartAggrAWSData <- function(tstep, net_aws, var_hgt, pars,
 
     if(plotrange){
         db_vorder <- c('Ave', 'Min', 'Max')
-        qres <- reshape2::acast(qres, obs_time~stat_code, value.var = 'value')
+        qres <- reshape2::acast(qres, obs_time~stat_code, mean, value.var = 'value')
         c_qres <- as.integer(dimnames(qres)[[2]])
         c_qres <- db_vorder[c_qres]
         r_qres <- as.integer(dimnames(qres)[[1]])
@@ -682,6 +682,24 @@ tableAggrAWSDataSel <- function(tstep, net_aws, var_hgt, pars,
 {
     out <- getAggrAWSData_awsSel(tstep, net_aws, var_hgt, pars, start, end, aws_dir)
 
+    don <- data.frame(Date = NA, Status = "no.data")
+    if(out$status != "ok"){
+        don$Status <- out$status
+        return(convJSON(don))
+    }
 
+    ina <- rowSums(!is.na(out$data)) > 0
+    if(!any(ina)) return(convJSON(don))
+    out$date <- out$date[ina]
+    out$data <- out$data[ina, , drop = FALSE]
+    out$data <- round(out$data, 1)
 
+    don <- data.frame(out$date, out$data)
+    nom <- c('Date', out$net_aws)
+    names(don) <- nom
+    titre <- paste(out$var_name, out$stat_name, sep = ' - ')
+
+    don <- list(data = don, title = titre, order = nom)
+
+    return(convJSON(don))
 }

@@ -1,4 +1,4 @@
-Package: mtoadt
+Package: mtoadtNMA
 Version: 2.0
 Title: Processing AWS data from Ethiopia National Meteorology Agency
 Description: process AWS data from NMA's AWS networks, aggregate AWS data to a different 
@@ -19,4 +19,5 @@ Imports:
     fields,
     RColorBrewer,
     matrixStats,
+    openair,
 RoxygenNote: 7.1.1
