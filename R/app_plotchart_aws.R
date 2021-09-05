@@ -444,7 +444,7 @@ tableAggrAWSData <- function(tstep, net_aws, start, end, aws_dir){
 #' Get aggregated data to display on chart for multiple AWS.
 #' 
 #' @param tstep the time step of the data.
-#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koika
+#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koica
 #' @param var_hgt the variable code and observation height, form  <var code>_<height>.
 #' @param pars parameters.
 #' @param start start time.
@@ -666,7 +666,7 @@ chartAggrAWSDataSel <- function(tstep, net_aws, var_hgt, pars,
 #' Get aggregated data to display on table for multiple AWS.
 #' 
 #' @param tstep the time step of the data.
-#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koika
+#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koica
 #' @param var_hgt the variable code and observation height, form  <var code>_<height>.
 #' @param pars parameters.
 #' @param start start time.

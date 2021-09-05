@@ -18,6 +18,7 @@ export(chartWindBarb)
 export(chartWindRose)
 export(openairWindRose)
 export(graphWindContours)
+export(chartRainAccumul)
 
 export(mapMinAWSData)
 export(mapAggrAWSData)
@@ -34,5 +35,7 @@ export(downAWSAggrCDTDataCSV)
 export(downWindBarbCSV)
 export(downWindFreqCSV)
 export(downHourlyMSLP)
+export(downRainAccumulSP)
+export(downRainAccumulTS)
 
 

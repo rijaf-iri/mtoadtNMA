@@ -324,3 +324,60 @@ downHourlyMSLP <- function(time, aws_dir){
     return(convCSV(don))
 }
 
+##########
+#' Compute precipitation accumulation.
+#'
+#' Compute precipitation accumulation for download.
+#' 
+#' @param tstep time basis to accumulate the data.
+#' @param time target date.
+#' @param accumul accumulation duration.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downRainAccumulSP <- function(tstep, time, accumul, aws_dir){
+    don <- spRainAccumulAWS(tstep, time, accumul, aws_dir)
+    if(don$status == "ok"){
+        don <- don$data
+        don[is.na(don)] <- ""
+    }else don <- data.frame(status = don$status)
+
+    return(convCSV(don))
+}
+
+
+##########
+#' Compute precipitation accumulation.
+#'
+#' Compute precipitation accumulation for download.
+#' 
+#' @param tstep time basis to accumulate the data.
+#' @param net_aws a vector of the network code and AWS ID, form <network code>_<AWS ID>. AWS network code, 1: vaisala, 2: adcon, 3: koica
+#' @param start start date.
+#' @param end end date.
+#' @param accumul accumulation duration.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return CSV object
+#' 
+#' @export
+
+downRainAccumulTS <- function(tstep, net_aws, start, end, accumul, aws_dir){
+    don <- tsRainAccumulAWS(tstep, net_aws, start, end, accumul, aws_dir)
+    if(don$status == 'ok'){
+        frmt <- switch(tstep, "hourly" = "%Y%m%d%H", "daily" = "%Y%m%d")
+        tt <- format(don$date, frmt)
+        don <- data.frame(tt, don$data)
+        don[is.na(don)] <- ""
+        frmt <- switch(tstep, "hourly" = "Hour", "daily" = "Day")
+        names(don) <- c("Date", paste0("Accumulation_", accumul, "-", frmt))
+    }else don <- data.frame(status = don$status)
+
+    return(convCSV(don))
+}
+

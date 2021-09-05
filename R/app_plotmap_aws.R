@@ -404,8 +404,8 @@ spatialAggrAWS <- function(tstep, time, aws_dir){
     conn <- try(connect.database(adt_args$connection,
                    RMySQL::MySQL()), silent = TRUE)
     if(inherits(conn, "try-error")){
-        data.null$opts$status <- "failed-connection"
-        return(convJSON(data.null))
+        data.null$status <- "failed-connection"
+        return(data.null)
     }
 
     if(tstep %in% c("hourly", "daily")){
