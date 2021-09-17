@@ -58,12 +58,22 @@ readCoordsData <- function(aws_dir){
     DBI::dbDisconnect(con_adt)
 
     nmCol <- c("id", "name", "longitude", "latitude", "altitude", "network",
-               "network_code", "woreda", "zone", "region", "startdate", "enddate")
+               "network_code", "woreda", "zone", "region", "Gh_id", "MSC",
+               "startdate", "enddate")
 
     # crds <- rbind(adcoCrd[, nmCol, drop = FALSE], vaisCrd[, nmCol, drop = FALSE])
     crds <- rbind(adcoCrd[, nmCol, drop = FALSE],
                   vaisCrd[, nmCol, drop = FALSE],
                   koikCrd[, nmCol, drop = FALSE])
+
+    #############
+    crds$startdate <- as.POSIXct(as.integer(crds$startdate), origin = origin, tz = tz)
+    crds$startdate <- format(crds$startdate, "%Y-%m-%d %H:%M")
+    crds$startdate[is.na(crds$startdate)] <- ""
+
+    crds$enddate <- as.POSIXct(as.integer(crds$enddate), origin = origin, tz = tz)
+    crds$enddate <- format(crds$enddate, "%Y-%m-%d %H:%M")
+    crds$enddate[is.na(crds$enddate)] <- ""
 
     #############
     xcrd <- crds[, c('longitude', 'latitude')]
@@ -109,6 +119,49 @@ readCoordsData <- function(aws_dir){
     crds$LatX <- as.numeric(as.character(crds$LatX))
 
     #############
+    # get parameters for each aws
+    # crds$PARS <- pars
+
+    return(crds)
+}
+
+#############
+#' Get AWS coordinates for one network.
+#'
+#' Get AWS coordinates for one network to display on table.
+#' 
+#' @param network the AWS network code; 1: vaisala, 2: adcon, 3: koika.
+#' @param aws_dir full path to the directory containing ADT.\cr
+#'               Example: "D:/NMA_AWS_v2"
+#' 
+#' @return a JSON object
+#' 
+#' @export
+
+tableAWSCoords <- function(network, aws_dir){
+    tz <- Sys.getenv("TZ")
+    origin <- "1970-01-01"
+
+    awsnet <- switch(as.character(network),
+                     "1" = "vaisala_crds",
+                     "2" = "adcon_crds",
+                     "3" = "koica_crds"
+                    )
+
+    #############
+    adt_args <- readRDS(file.path(aws_dir, "AWS_DATA", "AUTH", "adt.con"))
+    con_adt <- try(connect.database(adt_args$connection,
+                   RMySQL::MySQL()), silent = TRUE)
+    if(inherits(con_adt, "try-error")){
+        status <- data.frame(status = "unable to connect to database")
+        return(convJSON(status))
+    }
+
+    #############
+    crds <- DBI::dbReadTable(con_adt, awsnet)
+    DBI::dbDisconnect(con_adt)
+
+    #############
     crds$startdate <- as.POSIXct(as.integer(crds$startdate), origin = origin, tz = tz)
     crds$startdate <- format(crds$startdate, "%Y-%m-%d %H:%M")
     crds$startdate[is.na(crds$startdate)] <- ""
@@ -118,10 +171,8 @@ readCoordsData <- function(aws_dir){
     crds$enddate[is.na(crds$enddate)] <- ""
 
     #############
-    # get parameters for each aws
-    # crds$PARS <- pars
 
-    return(crds)
+    return(convJSON(crds))
 }
 
 #############

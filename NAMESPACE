@@ -24,6 +24,7 @@ export(mapMinAWSData)
 export(mapAggrAWSData)
 export(mapHourlyMSLP)
 
+export(tableAWSCoords)
 export(tableAggrAWSData)
 export(tableAggrAWSDataSel)
 
